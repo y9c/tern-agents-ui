@@ -659,6 +659,48 @@ func TestStandInLeavesWhenTurnStarts(t *testing.T) {
 	}
 }
 
+// Codex reuses assistant and reasoning item ids (msg_0, reason_0) in every
+// turn. Each turn's user message and reply must stay separate entries in the
+// order, not fold into one merged assistant blob.
+func TestCodexItemsDisambiguatedByTurn(t *testing.T) {
+	a := codexTestApp(t)
+	for _, turn := range []string{"t1", "t2", "t3"} {
+		a.apply(&agent.ItemCompleted{Item: agent.Item{ID: "user-" + turn, TurnID: turn, Kind: agent.ItemUserMessage, Status: agent.ItemDone, Text: "msg " + turn}})
+		a.apply(&agent.ItemCompleted{Item: agent.Item{ID: "reason_0", TurnID: turn, Kind: agent.ItemReasoning, Status: agent.ItemDone, Text: "think " + turn}})
+		a.apply(&agent.ItemCompleted{Item: agent.Item{ID: "msg_0", TurnID: turn, Kind: agent.ItemAssistantMessage, Status: agent.ItemDone, Text: "reply " + turn}})
+	}
+
+	var assistants []string
+	for _, id := range a.order {
+		if e := a.entries[id]; e != nil && e.item.Kind == agent.ItemAssistantMessage {
+			assistants = append(assistants, id)
+			want := "reply " + e.item.TurnID
+			if e.item.Text != want {
+				t.Errorf("assistant %q text = %q, want %q", id, e.item.Text, want)
+			}
+		}
+	}
+	if len(assistants) != 3 {
+		t.Fatalf("got %d assistant entries %v, want 3 (one per turn)", len(assistants), assistants)
+	}
+	// each reply must follow its own user message
+	prevUser := ""
+	for _, id := range a.order {
+		e := a.entries[id]
+		if e == nil {
+			continue
+		}
+		switch e.item.Kind {
+		case agent.ItemUserMessage:
+			prevUser = e.item.TurnID
+		case agent.ItemAssistantMessage:
+			if e.item.TurnID != prevUser {
+				t.Errorf("assistant in turn %q after user turn %q", e.item.TurnID, prevUser)
+			}
+		}
+	}
+}
+
 // Codex runs a queued message under a new turn id, so its real user item
 // carries the send's ClientID, not the stand-in's turn id. The stand-in must
 // be rebound by ClientID: dropped, with the real item taking its place.

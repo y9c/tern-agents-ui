@@ -863,31 +863,32 @@ func (a *app) dropRequestLocked(id string) {
 // their Agent call but not listed in the main order.
 func (a *app) upsertLocked(it agent.Item) {
 	a.rebindQueuedClientLocked(it)
-	e, ok := a.entries[it.ID]
+	key := a.itemEntryKey(it)
+	e, ok := a.entries[key]
 	if !ok {
 		e = &entry{}
-		a.entries[it.ID] = e
+		a.entries[key] = e
 		if it.SubagentID == "" {
-			a.order = append(a.order, it.ID)
+			a.order = append(a.order, key)
 		} else {
-			a.subOrder[it.SubagentID] = append(a.subOrder[it.SubagentID], it.ID)
+			a.subOrder[it.SubagentID] = append(a.subOrder[it.SubagentID], key)
 		}
 	} else if e.local == nil && e.item.SubagentID == "" && it.SubagentID != "" {
 		// First seen before its subagent was known: it moves under it.
-		a.order = slices.DeleteFunc(a.order, func(id string) bool { return id == it.ID })
-		a.subOrder[it.SubagentID] = append(a.subOrder[it.SubagentID], it.ID)
+		a.order = slices.DeleteFunc(a.order, func(id string) bool { return id == key })
+		a.subOrder[it.SubagentID] = append(a.subOrder[it.SubagentID], key)
 	}
 	e.item = it
 	e.ver++
 	// Only a thought seen running is timed; one from history has no span.
-	if span, timed := a.thinking[it.ID]; it.Kind == agent.ItemReasoning && (timed || it.Status == agent.ItemRunning) {
+	if span, timed := a.thinking[key]; it.Kind == agent.ItemReasoning && (timed || it.Status == agent.ItemRunning) {
 		if span.start.IsZero() {
 			span.start = firstTime(it.Time, time.Now())
 		}
 		if it.Status != agent.ItemRunning && span.end.IsZero() {
 			span.end = time.Now()
 		}
-		a.thinking[it.ID] = span
+		a.thinking[key] = span
 	}
 	// Each Agent call up the chain shows its subagent's work: a task names
 	// its call, and otherwise the item's ParentID does.
@@ -902,6 +903,22 @@ func (a *app) upsertLocked(it agent.Item) {
 		p.ver++
 		sub, parent = p.item.SubagentID, p.item.ParentID
 	}
+}
+
+// itemEntryKey returns the transcript key for it. Codex reuses assistant and
+// reasoning item ids (msg_0, reason_0) in every turn, so keying by the bare id
+// would fold all turns' replies into one entry. When the id already belongs to
+// a different turn, the turn id disambiguates it.
+func (a *app) itemEntryKey(it agent.Item) string {
+	if it.TurnID != "" {
+		if _, ok := a.entries[it.TurnID+"/"+it.ID]; ok {
+			return it.TurnID + "/" + it.ID
+		}
+		if e, ok := a.entries[it.ID]; ok && e.item.TurnID != "" && e.item.TurnID != it.TurnID {
+			return it.TurnID + "/" + it.ID
+		}
+	}
+	return it.ID
 }
 
 // rebindQueuedClientLocked drops the queue stand-in for a message whose real
