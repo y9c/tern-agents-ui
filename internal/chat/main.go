@@ -68,7 +68,7 @@ func Main(b backend) {
 		flag.StringVar(&prompt, "prompt", "", "send this as the first message")
 	case piBackend:
 		flag.BoolVar(cont, "c", false, "alias for -continue")
-		flag.StringVar(resume, "r", "", "alias for -resume")
+		flag.BoolVar(cont, "r", false, "alias for --resume (open the resume picker; no argument)")
 		flag.StringVar(resume, "s", "", "alias for -session (session id)")
 		flag.StringVar(title, "n", "", "alias for -name (session title)")
 	case codexBackend:
