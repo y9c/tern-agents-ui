@@ -52,16 +52,32 @@ func Main(b backend) {
 	mcpConfig := flag.String("mcp-config", "", `JSON file of extra MCP servers: {"mcpServers": {"name": {"command": …} | {"url": …}}}`)
 	noSave := flag.Bool("no-save", false, "don't store the conversation")
 	title := flag.String("title", "", "name the new conversation")
-	prompt := flag.String("p", "", "send this as the first message, like the agent CLI's --prompt")
 	applyAgentFlags := b.Flags(flag.CommandLine)
 	demo := flag.String("demo", "", "show a sample screen without starting "+b.Name()+": welcome, complete, context, chat, running, permission, question, ask, plan, rewind, config, picker or queue")
 
-	// Accept the agent CLI's own flags as aliases of the wrapper's, so a
-	// command is used the way the underlying tool is (opencode -c, -s id;
-	// claude -c, -s id; ...) instead of failing with "flag provided but not
-	// defined". -c and -s are the common continue/session shorthands.
-	flag.BoolVar(cont, "c", false, "alias for -continue")
-	flag.StringVar(resume, "s", "", "alias for -resume (the session id)")
+	// Accept the agent CLI's own flags as aliases of the wrapper's, so it is
+	// used the way the underlying tool is. The short flags mean different
+	// things per agent (codex -c is --config; claude and pi -p is --print), so
+	// aliases are registered per backend and never misread one.
+	var prompt string
+	switch b.(type) {
+	case opencodeBackend:
+		flag.BoolVar(cont, "c", false, "alias for -continue")
+		flag.StringVar(resume, "s", "", "alias for -resume (session id)")
+		flag.StringVar(&prompt, "p", "", "send this as the first message")
+		flag.StringVar(&prompt, "prompt", "", "send this as the first message")
+	case piBackend:
+		flag.BoolVar(cont, "c", false, "alias for -continue")
+		flag.StringVar(resume, "r", "", "alias for -resume")
+		flag.StringVar(resume, "s", "", "alias for -session (session id)")
+		flag.StringVar(title, "n", "", "alias for -name (session title)")
+	case codexBackend:
+		// codex -c is --config (a config override), not continue; resume is
+		// `codex resume --last`. Leave Codex's shorthands to Codex itself.
+	case claudeBackend:
+		// claude uses long flags; -p is --print (non-interactive), which this
+		// frontend is not a drop-in for.
+	}
 	flag.Parse()
 
 	if err := checkFlags(b, *mode, *effort, *resume, *cont); err != nil {
@@ -184,12 +200,12 @@ func Main(b backend) {
 		start.Resume = newestSession(ctx, a, dir)
 	}
 	a.start(start)
-	if *prompt != "" {
+	if prompt != "" {
 		a.mu.Lock()
 		if a.deferred != nil {
-			a.sendLocked(*prompt, agent.DeliverQueue)
+			a.sendLocked(prompt, agent.DeliverQueue)
 		} else {
-			a.composer.set(*prompt)
+			a.composer.set(prompt)
 		}
 		a.mu.Unlock()
 	}
