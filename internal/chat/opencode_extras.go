@@ -42,6 +42,38 @@ func (a *app) opencodeAgents(os *opencode.Session) {
 	})
 }
 
+// cmdInstructions sets a persistent instruction entry for OpenCode.
+func (a *app) cmdInstructions(arg string) {
+	key, value, _ := strings.Cut(strings.TrimSpace(arg), "=")
+	key = strings.TrimSpace(key)
+	if key == "" {
+		a.toastLocked("info", "Usage: /instructions <key>[=<value>]  (an empty value clears the entry)")
+		return
+	}
+	os, err := a.opencodeSession()
+	if err != nil {
+		a.toastLocked("error", err.Error())
+		return
+	}
+	gen := a.gen
+	a.async("Instructions", func(ctx context.Context) error {
+		if err := os.SetInstructions(ctx, key, strings.TrimSpace(value)); err != nil {
+			return err
+		}
+		a.mu.Lock()
+		defer a.mu.Unlock()
+		if gen != a.gen {
+			return nil
+		}
+		if strings.TrimSpace(value) == "" {
+			a.toastLocked("info", "Cleared instruction entry "+key)
+		} else {
+			a.toastLocked("info", "Set instruction entry "+key)
+		}
+		return nil
+	})
+}
+
 // opencodePermissions shows the session's permission rules as a card.
 func (a *app) opencodePermissions(os *opencode.Session) {
 	gen := a.gen

@@ -8,6 +8,18 @@ import (
 	agent "github.com/saanuregh/agent-cli-connector"
 )
 
+// TestOpenCodeInstructionsOffered pins that /instructions is gated on for
+// OpenCode (its session supports SetInstructions), and off for Codex, which
+// has no such capability.
+func TestOpenCodeInstructionsOffered(t *testing.T) {
+	if !OpenCode().Has(featInstructions) {
+		t.Fatal("opencode should offer /instructions")
+	}
+	if Codex().Has(featInstructions) {
+		t.Fatal("codex does not support /instructions")
+	}
+}
+
 // TestOpenCodeConfigModels parses a provider/model config from opencode.json.
 // OpenCode's cold /api/model returns no models for a provider, so the app
 // lists what the config declares; this pins that behavior.

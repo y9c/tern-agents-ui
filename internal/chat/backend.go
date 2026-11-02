@@ -73,5 +73,6 @@ const (
 	featMCPAuth                          // /mcp login and logout
 	featBackground                       // Ctrl+B moves the running command to the background
 	featArchive                          // /archive, /unarchive
-	featFeedback                         // /feedback
+	featFeedback                          // /feedback
+	featInstructions                       // /instructions (persistent session instruction)
 )

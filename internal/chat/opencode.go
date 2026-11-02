@@ -59,7 +59,7 @@ func (opencodeBackend) Efforts() []agent.Effort {
 // not offered.
 func (opencodeBackend) Has(f feature) bool {
 	switch f {
-	case featAgents, featPermissionRules, featSideQuestion, featTurnDiff, featExport, featShell:
+	case featAgents, featPermissionRules, featSideQuestion, featTurnDiff, featExport, featShell, featInstructions:
 		return true
 	}
 	return false

@@ -74,6 +74,7 @@ func init() {
 		{"tasks", "[clean]", "Show background tasks and stop them", (*app).cmdTasks, featNone},
 		{"plan", "", "Show the plan file", (*app).cmdPlan, featPlanFile},
 		{"export", "", "Save the conversation as JSON in this directory", (*app).cmdExport, featExport},
+		{"instructions", "[key[=value]]", "Set a persistent instruction for this session; empty value clears it", (*app).cmdInstructions, featInstructions},
 		{"review", "[uncommitted|branch <base>|commit <sha>|instructions]", "Review code changes", (*app).cmdReview, featReview},
 		{"goal", "[objective|pause|resume|clear]", "Show or set the goal Codex works toward", (*app).cmdGoal, featGoals},
 		{"diff", "", "Show what the current or last turn changed", (*app).cmdDiff, featTurnDiff},
