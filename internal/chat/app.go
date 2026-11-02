@@ -758,6 +758,15 @@ func (a *app) apply(ev agent.Event) {
 		if ev.Code == "auth" {
 			msg += " · run claude /login in a terminal, then /continue"
 		}
+		// A harness notice that a model's metadata is unknown is self-healing:
+		// the harness falls back to generic metadata and still replies, so
+		// toasting it as a warning only alarms the user about something they
+		// cannot act on. Suppress those, but never an error-level notice.
+		if ev.Level != agent.NoticeError &&
+			strings.Contains(msg, "metadata") &&
+			(strings.Contains(msg, "not found") || strings.Contains(msg, "fallback")) {
+			break
+		}
 		a.toastLocked(string(ev.Level), msg)
 	case *claude.ToolProgress:
 		// The tool's own clock, so a redrawn row keeps counting from it.
