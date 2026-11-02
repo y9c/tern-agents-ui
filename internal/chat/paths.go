@@ -96,9 +96,36 @@ func (a *app) linkPaths(text string) (string, []ui.Span) {
 	return strings.Join(lines, "\n"), marks
 }
 
-// existingPath resolves p against the chat's folder and home and reports
-// whether it exists. Hits are cached until the turn ends, when files may
-// have moved.
+// renderVisuals normalizes assistant markdown so Tern draws images and SVG
+// that an agent emits as markers or XML source:
+//   - `<preview>path</preview>` (and `<preview path="path">…</preview>`) becomes
+//     a markdown image `![](path)`, which Tern renders inline;
+//   - a fenced block whose body is an SVG is given the `svg` language, so Tern
+//     draws it instead of showing the XML (its original language, such as
+//     `xml`, renders as a code block).
+var (
+	previewTagRe = regexp.MustCompile(`<preview(?:\s+path=['"]([^'"]+)['"])?\s*>\s*([^<]*?)\s*</preview>`)
+	svgFenceRe   = regexp.MustCompile("(?ms)^" + "```" + `[^\n]*\n(<svg[\s\S]*?</svg>)\n` + "```" + `[ \t]*$`)
+)
+
+func renderVisuals(text string) string {
+	// A preview marker is a markdown image, so Tern shows the file inline.
+	text = previewTagRe.ReplaceAllStringFunc(text, func(m string) string {
+		sub := previewTagRe.FindStringSubmatch(m)
+		p := strings.TrimSpace(sub[1])
+		if p == "" {
+			p = strings.TrimSpace(sub[2])
+		}
+		if p == "" {
+			return m
+		}
+		return "![](" + p + ")"
+	})
+	// A fenced block that is really an SVG: force the `svg` language.
+	text = svgFenceRe.ReplaceAllString(text, "```svg\n$1\n```")
+	return text
+}
+
 func (a *app) existingPath(p string) (string, bool) {
 	if strings.TrimSpace(p) == "" {
 		return "", false

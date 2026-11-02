@@ -317,7 +317,7 @@ func (a *app) entryNode(id string, e *entry) tern.Element {
 		md := ui.Md{Common: ui.Common{Key: key, Actions: &ui.Actions{Menu: []string{"copy"}}},
 			Text: it.Text, Stream: it.Status == agent.ItemRunning}
 		if !md.Stream {
-			md.Text, md.Marks = a.linkPaths(it.Text)
+			md.Text, md.Marks = a.linkPaths(renderVisuals(it.Text))
 		}
 		return md
 	case agent.ItemReasoning:
