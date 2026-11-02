@@ -659,6 +659,29 @@ func TestStandInLeavesWhenTurnStarts(t *testing.T) {
 	}
 }
 
+// Codex runs a queued message under a new turn id, so its real user item
+// carries the send's ClientID, not the stand-in's turn id. The stand-in must
+// be rebound by ClientID: dropped, with the real item taking its place.
+func TestStandInRebindsByClientID(t *testing.T) {
+	a := codexTestApp(t)
+	a.entries["queued-1"] = &entry{item: agent.Item{ID: "queued-1", Kind: agent.ItemUserMessage, Text: "next"}, ver: 1}
+	a.order = append(a.order, "queued-1")
+	a.queued["queued-1"], a.queuedTurns["queued-1"] = true, nil
+	a.queuedClient["client-1"] = "queued-1"
+
+	a.apply(&agent.ItemCompleted{Item: agent.Item{ID: "native-1", TurnID: "native-1", Kind: agent.ItemUserMessage, Status: agent.ItemDone, Text: "next", ClientID: "client-1"}})
+
+	if a.entries["queued-1"] != nil || slices.Contains(a.order, "queued-1") {
+		t.Fatalf("stand-in kept: order %v", a.order)
+	}
+	if a.queued["queued-1"] || a.queuedTurns["queued-1"] != nil || a.queuedClient["client-1"] != "" {
+		t.Fatalf("queue state not cleared: queued %v client %v", a.queued, a.queuedClient)
+	}
+	if a.entries["native-1"] == nil || !slices.Contains(a.order, "native-1") {
+		t.Fatalf("real item missing: order %v", a.order)
+	}
+}
+
 // The branch comes from HEAD, also through a worktree's gitdir file.
 func TestGitBranch(t *testing.T) {
 	repo := t.TempDir()

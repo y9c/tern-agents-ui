@@ -40,6 +40,7 @@ type app struct {
 	openScripts     map[string]bool              // commands whose whole script is shown
 	fromTern        bool                         // the draft being submitted came from Tern, not the keyboard
 	queuedTurns     map[string]*agent.Turn       // stand-ins for queued messages the agent announces only when they run
+	queuedClient    map[string]string            // send ClientID -> stand-in turn id, to rebind a queued message's real user item
 	turnDiff        string                       // Codex: what the current or last turn changed
 	otherLimits     map[string][]agent.RateLimit // Codex: allowances besides the main one, by id
 	otherLimitOrder []string                     // their ids, in the order they first came
@@ -251,6 +252,7 @@ func (a *app) resetLocked() {
 	a.lastOutcome = activity{state: "idle"}
 	a.readGroups = map[string]cachedNode{}
 	a.queuedTurns = map[string]*agent.Turn{}
+	a.queuedClient = map[string]string{}
 	a.openScripts = map[string]bool{}
 	a.summaries, a.toolStart, a.stdin, a.hookRunning, a.resumedAt = map[string]bool{}, map[string]time.Time{}, map[string]string{}, "", -1
 	a.turnDiff, a.otherLimits, a.otherLimitOrder, a.account = "", map[string][]agent.RateLimit{}, nil, accountInfo{}
@@ -557,6 +559,7 @@ func (a *app) endSessionLocked(err error) {
 	}
 	a.order = slices.DeleteFunc(a.order, func(id string) bool { return a.queued[id] })
 	a.queued, a.queuedTurns = map[string]bool{}, map[string]*agent.Turn{}
+	a.queuedClient = map[string]string{}
 	if len(unsent) > 0 && len(a.composer.text) == 0 {
 		a.composer.set(strings.Join(unsent, "\n\n"))
 	}
@@ -618,6 +621,7 @@ func (a *app) apply(ev agent.Event) {
 		}
 		a.subOrder, a.tasks, a.plan, a.planAt = map[string][]string{}, map[string]agent.Task{}, nil, map[string][]agent.PlanStep{}
 		a.queued, a.queuedTurns, a.compaction, a.suggestion, a.ctxUsage = map[string]bool{}, map[string]*agent.Turn{}, nil, "", nil
+		a.queuedClient = map[string]string{}
 		a.resumedAt = -1
 		a.refreshContextLocked()
 	}
@@ -858,6 +862,7 @@ func (a *app) dropRequestLocked(id string) {
 // upsertLocked records the latest state of it. Subagent items are kept for
 // their Agent call but not listed in the main order.
 func (a *app) upsertLocked(it agent.Item) {
+	a.rebindQueuedClientLocked(it)
 	e, ok := a.entries[it.ID]
 	if !ok {
 		e = &entry{}
@@ -897,6 +902,26 @@ func (a *app) upsertLocked(it agent.Item) {
 		p.ver++
 		sub, parent = p.item.SubagentID, p.item.ParentID
 	}
+}
+
+// rebindQueuedClientLocked drops the queue stand-in for a message whose real
+// user item now runs under the agent's own id. Codex announces a queued
+// message only when it runs, under a new turn id, so the stand-in cannot be
+// matched by turn id; the send's ClientID, which the agent echoes on the user
+// item, identifies it.
+func (a *app) rebindQueuedClientLocked(it agent.Item) {
+	if it.Kind != agent.ItemUserMessage || it.ClientID == "" {
+		return
+	}
+	id, ok := a.queuedClient[it.ClientID]
+	if !ok || id == it.ID {
+		return
+	}
+	delete(a.queuedClient, it.ClientID)
+	delete(a.queuedTurns, id)
+	delete(a.queued, id)
+	delete(a.entries, id)
+	a.order = slices.DeleteFunc(a.order, func(o string) bool { return o == id })
 }
 
 // dropStandInLocked removes the queue's stand-in for a message that now

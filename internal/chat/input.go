@@ -359,6 +359,7 @@ func (a *app) sendLocked(text string, delivery agent.Delivery) {
 				a.entries[id] = &entry{item: agent.Item{ID: id, Kind: agent.ItemUserMessage, Status: agent.ItemDone, Text: text}, ver: 1}
 				a.order = append(a.order, id)
 				a.queuedTurns[id] = turn
+				a.queuedClient[in.ClientID] = id
 			}
 		}
 	}()
