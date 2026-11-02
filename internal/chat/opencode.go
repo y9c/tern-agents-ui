@@ -2,7 +2,11 @@ package chat
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
+	"os"
+	"path/filepath"
+	"sort"
 
 	agent "github.com/saanuregh/agent-cli-connector"
 	"github.com/saanuregh/agent-cli-connector/opencode"
@@ -73,12 +77,115 @@ func (opencodeBackend) FileSuggestions(context.Context, agent.Session, string, s
 	return nil, agent.ErrUnsupported
 }
 
-// Models asks the provider; the running session's server does not expose a
-// model list through the uniform Session interface.
+// Models lists the models to offer. The provider's ListModels reflects the
+// running OpenCode server, which does not enumerate a provider's models until
+// they are exercised in a session (a cold /api/model returns none), so the
+// configured set from opencode.json is the source of truth and is merged in.
 func (b opencodeBackend) Models(ctx context.Context, _ agent.Session) []agent.Model {
-	models, err := b.provider.ListModels(ctx)
+	listed, err := b.provider.ListModels(ctx)
+	if err != nil {
+		listed = nil
+	}
+	return mergeModels(listed, opencodeConfigModels())
+}
+
+// opencodeConfigModels reads ~/.config/opencode/opencode.json and returns one
+// agent.Model per configured provider model, as "provider/model".
+func opencodeConfigModels() []agent.Model {
+	raw, err := os.ReadFile(opencodeConfigPath())
 	if err != nil {
 		return nil
 	}
-	return models
+	var cfg struct {
+		Model    string `json:"model"`
+		Provider map[string]struct {
+			Models map[string]struct {
+				Name    string `json:"name"`
+				Limit   struct {
+					Context int64 `json:"context"`
+				} `json:"limit"`
+				Modalities *struct {
+					Input []string `json:"input"`
+				} `json:"modalities"`
+			} `json:"models"`
+		} `json:"provider"`
+	}
+	if json.Unmarshal(raw, &cfg) != nil {
+		return nil
+	}
+	var out []agent.Model
+	for pid, prov := range cfg.Provider {
+		for mid, md := range prov.Models {
+			name := md.Name
+			if name == "" {
+				name = mid
+			}
+			m := agent.Model{ID: pid + "/" + mid, DisplayName: name, Provider: pid, ContextWindow: md.Limit.Context}
+			if cfg.Model == m.ID {
+				m.IsDefault = true
+			}
+			if mdl := md.Modalities; mdl != nil {
+				m.InputModalities = mdl.Input
+			}
+			out = append(out, m)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Provider != out[j].Provider {
+			return out[i].Provider < out[j].Provider
+		}
+		return out[i].ID < out[j].ID
+	})
+	return out
+}
+
+// opencodeConfigPath is the user config OpenCode loads its providers from.
+func opencodeConfigPath() string {
+	if dir := os.Getenv("XDG_CONFIG_HOME"); dir != "" {
+		return filepath.Join(dir, "opencode", "opencode.json")
+	}
+	dir, err := os.UserConfigDir()
+	if err != nil {
+		dir = "."
+	}
+	return filepath.Join(dir, "opencode", "opencode.json")
+}
+
+// mergeModels returns a and b deduped by ID. A missing window or modality on
+// one entry is filled from the other; the config set fills the provider's
+// cold enumeration.
+func mergeModels(a, b []agent.Model) []agent.Model {
+	if len(a) == 0 {
+		return b
+	}
+	if len(b) == 0 {
+		return a
+	}
+	var out []agent.Model
+	for _, m := range append(append([]agent.Model{}, a...), b...) {
+		i := indexModel(out, m.ID)
+		if i < 0 {
+			out = append(out, m)
+			continue
+		}
+		if m.ContextWindow != 0 && out[i].ContextWindow == 0 {
+			out[i].ContextWindow = m.ContextWindow
+		}
+		if len(m.InputModalities) > 0 && len(out[i].InputModalities) == 0 {
+			out[i].InputModalities = m.InputModalities
+		}
+		if m.IsDefault {
+			out[i].IsDefault = true
+		}
+	}
+	return out
+}
+
+func indexModel(ms []agent.Model, id string) int {
+	for i, m := range ms {
+		if m.ID == id {
+			return i
+		}
+	}
+	return -1
 }
