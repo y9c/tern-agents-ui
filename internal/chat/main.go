@@ -54,6 +54,13 @@ func Main(b backend) {
 	title := flag.String("title", "", "name the new conversation")
 	applyAgentFlags := b.Flags(flag.CommandLine)
 	demo := flag.String("demo", "", "show a sample screen without starting "+b.Name()+": welcome, complete, context, chat, running, permission, question, ask, plan, rewind, config, picker or queue")
+
+	// Accept the agent CLI's own flags as aliases of the wrapper's, so a
+	// command is used the way the underlying tool is (opencode -c, -s id;
+	// claude -c, -s id; ...) instead of failing with "flag provided but not
+	// defined". -c and -s are the common continue/session shorthands.
+	flag.BoolVar(cont, "c", false, "alias for -continue")
+	flag.StringVar(resume, "s", "", "alias for -resume (the session id)")
 	flag.Parse()
 
 	if err := checkFlags(b, *mode, *effort, *resume, *cont); err != nil {
