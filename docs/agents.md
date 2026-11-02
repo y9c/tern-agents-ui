@@ -1,7 +1,8 @@
-# Claude Code and Codex
+# Claude Code, Codex and OpenCode
 
-`tclaude` drives the `claude` CLI and `tcodex` drives the `codex` CLI. Both
-share the same chat; this page covers what differs.
+`tclaude` drives the `claude` CLI, `tcodex` drives the `codex` CLI and
+`topencode` drives the `opencode` CLI. All three share the same chat; this
+page covers what differs.
 
 ## Command-line flags
 
@@ -14,6 +15,9 @@ tclaude [-model ID] [-mode MODE] [-effort LEVEL] [-resume ID | -continue] [-cwd 
 
 tcodex  [the shared flags above, up to -debug]
         [-service-tier TIER] [-personality NAME] [-reasoning-summary LEVEL]
+
+topencode [the shared flags above, up to -debug]
+          [-agent NAME]   # the agent to run turns with, such as build or plan
 ```
 
 - `-help` describes each flag.
