@@ -15,6 +15,8 @@ import (
 	agent "github.com/saanuregh/agent-cli-connector"
 	"github.com/saanuregh/agent-cli-connector/claude"
 	"github.com/saanuregh/agent-cli-connector/codex"
+	"github.com/saanuregh/agent-cli-connector/opencode"
+	"github.com/saanuregh/agent-cli-connector/pi"
 	"github.com/stencil-hq/tern-sdk/go/tern"
 )
 
@@ -1027,6 +1029,32 @@ func (a *app) claudeSession() (*claude.Session, error) {
 		return nil, agent.ErrUnsupported
 	}
 	return cs, nil
+}
+
+// opencodeSession returns the live session as an OpenCode session, for
+// native controls the uniform API lacks.
+func (a *app) opencodeSession() (*opencode.Session, error) {
+	if a.sess == nil {
+		return nil, errors.New(a.backend.Name() + " is not running")
+	}
+	os, ok := a.sess.(*opencode.Session)
+	if !ok {
+		return nil, agent.ErrUnsupported
+	}
+	return os, nil
+}
+
+// piSession returns the live session as a Pi session, for native controls
+// the uniform API lacks.
+func (a *app) piSession() (*pi.Session, error) {
+	if a.sess == nil {
+		return nil, errors.New(a.backend.Name() + " is not running")
+	}
+	ps, ok := a.sess.(*pi.Session)
+	if !ok {
+		return nil, agent.ErrUnsupported
+	}
+	return ps, nil
 }
 
 // liveSession returns the live session and its generation, or an error

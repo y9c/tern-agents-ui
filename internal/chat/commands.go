@@ -749,6 +749,10 @@ func (a *app) cmdBtw(arg string) {
 		a.toastLocked("info", "Usage: /btw <question>")
 		return
 	}
+	if os, err := a.opencodeSession(); err == nil {
+		a.opencodeBtw(os, arg)
+		return
+	}
 	cs, err := a.claudeSession()
 	if err != nil {
 		a.toastLocked("error", err.Error())
@@ -951,7 +955,9 @@ func (a *app) cmdPlan(string) {
 func (a *app) cmdExport(string) {
 	// Claude exports the conversation; Codex reads the thread with its turns.
 	var read func(ctx context.Context) (json.RawMessage, error)
-	if cs, err := a.claudeSession(); err == nil {
+	if os, err := a.opencodeSession(); err == nil {
+		read = os.Export
+	} else if cs, err := a.claudeSession(); err == nil {
 		read = cs.ExportConversation
 	} else if cx, err := a.codexSession(); err == nil {
 		read = func(ctx context.Context) (json.RawMessage, error) { return cx.ReadThread(ctx, true) }

@@ -53,6 +53,10 @@ func prettyJSON(raw json.RawMessage) string {
 }
 
 func (a *app) cmdAgents(string) {
+	if os, err := a.opencodeSession(); err == nil {
+		a.opencodeAgents(os)
+		return
+	}
 	cs, err := a.claudeSession()
 	if err != nil {
 		a.toastLocked("error", err.Error())
@@ -72,6 +76,10 @@ func (a *app) cmdAgents(string) {
 }
 
 func (a *app) cmdPermissions(string) {
+	if os, err := a.opencodeSession(); err == nil {
+		a.opencodePermissions(os)
+		return
+	}
 	a.claudeAsync("Permission rules", func(ctx context.Context, cs *claude.Session) (localCard, error) {
 		raw, err := cs.PermissionRules(ctx)
 		if err != nil {

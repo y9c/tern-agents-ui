@@ -1,10 +1,15 @@
 # tern-agents-ui
 
-Native [Tern](https://stencil.so/tern) chats for **Claude Code**, **Codex** and **OpenCode**.
+Native [Tern](https://stencil.so/tern) chats for **Claude Code**, **Codex**, **OpenCode** and **Pi**.
 
 - `tclaude` chats with Claude Code.
 - `tcodex` chats with Codex.
 - `topencode` chats with OpenCode.
+- `tpi` chats with Pi.
+- **Hermes** is a supported native Tern agent too, served by the separate
+  [hermes-for-tern](https://github.com/thefullctx/hermes-for-tern)
+  frontend (it installs the `hermes` CLI wrapper); it is not built as a Go
+  backend here.
 
 Each runs in a Tern pane and draws the conversation with Tern's own UI:
 Markdown messages, tool cards, diffs, subagents, permission prompts and a
@@ -20,7 +25,10 @@ to a plain text chat.
 - [Tern](https://stencil.so/tern)
 - The `claude` CLI ([Claude Code](https://docs.claude.com/en/docs/claude-code)),
   the `codex` CLI ([Codex](https://github.com/openai/codex)), the `opencode`
-  CLI ([OpenCode](https://opencode.ai)), or any of them, signed in
+  CLI ([OpenCode](https://opencode.ai)), the `pi` CLI ([Pi](https://github.com/earendil-works/pi))
+  or any of them, signed in
+- For Hermes: the `hermes` CLI wrapper, installed by
+  [hermes-for-tern](https://github.com/thefullctx/hermes-for-tern)
 
 ## Install
 
@@ -55,20 +63,19 @@ With [Go](https://go.dev/dl/) 1.26 or newer:
 ```sh
 git clone https://github.com/saanuregh/tern-agents-ui
 cd tern-agents-ui
-./build.sh                       # builds bin/tclaude, bin/tcodex and bin/topencode
+./build.sh                       # builds bin/tclaude, bin/tcodex, bin/topencode and bin/tpi
 tern plugin link "$PWD/plugin"
 ```
 
 Or only the binaries:
-`go install github.com/saanuregh/tern-agents-ui/cmd/{tclaude,tcodex,topencode}@latest`.
+`go install github.com/saanuregh/tern-agents-ui/cmd/{tclaude,tcodex,topencode,tpi}@latest`.
 
 ## Start a chat
 
-- From the palette, choose **New Claude chat**, **New Codex chat** or
-  **New OpenCode chat**. It opens beside the focused pane, in that pane's
-  folder. **Continue last …** reopens the most recent chat there.
-- From a shell, run `tclaude`, `tcodex` or `topencode` in the folder you
-  want to work in.
+- From the palette, choose **New Claude chat**, **New Codex chat**, **New OpenCode chat**, **New Pi chat** or **New Hermes chat**. It opens beside the focused pane, in that pane's folder. **Continue last …** reopens the most recent chat there.
+- From a shell, run `tclaude`, `tcodex`, `topencode` or `tpi` in the folder you want to work in; Hermes runs its `hermes` wrapper.
+
+Hermes is served by the separate [hermes-for-tern](https://github.com/thefullctx/hermes-for-tern) frontend, which installs the `hermes` CLI; this repo lists it as a supported native Tern agent but does not build its backend.
 
 The agent starts when you send your first message, so opening a chat costs
 nothing. Your existing setup applies as usual: settings, `CLAUDE.md` or
@@ -96,8 +103,9 @@ When you quit, the chat prints the command that resumes the conversation.
 - [Keys and commands](docs/keys-and-commands.md): every shortcut, command
   and attachment option.
 - [Features](docs/features.md): what the chat shows and how it behaves.
-- [Claude Code and Codex](docs/agents.md): command-line flags, sharing
-  conversations with the regular CLIs, and what differs between the two.
+- [Claude Code, Codex, OpenCode and Pi](docs/agents.md): command-line
+  flags, sharing conversations with the regular CLIs, and what differs
+  between agents.
 - [Development](docs/development.md): building, tests, releases and how the
   code is laid out.
 

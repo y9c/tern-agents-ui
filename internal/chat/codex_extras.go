@@ -10,6 +10,8 @@ import (
 
 	agent "github.com/saanuregh/agent-cli-connector"
 	"github.com/saanuregh/agent-cli-connector/codex"
+	"github.com/saanuregh/agent-cli-connector/opencode"
+	"github.com/saanuregh/agent-cli-connector/pi"
 )
 
 // Codex's own commands and controls: code review, goals, shell commands,
@@ -136,24 +138,47 @@ func (a *app) shellLocked(cmd string) {
 		}
 	}
 	sess, gen, err := a.liveSession()
-	cs, ok := sess.(*codex.Session)
-	if err != nil || !ok {
+	switch s := sess.(type) {
+	case *opencode.Session:
+		a.opencodeShell(s, cmd, restore)
+		return
+	case *pi.Session:
+		go func() {
+			ctx, cancel := context.WithTimeout(a.ctx, 2*time.Minute)
+			defer cancel()
+			if _, err := s.Bash(ctx, cmd, false); err != nil && !errors.Is(err, context.Canceled) {
+				a.mu.Lock()
+				defer a.mu.Unlock()
+				a.toastLocked("error", "Shell: "+err.Error())
+				if gen == a.gen {
+					restore()
+				}
+			}
+		}()
+		return
+	case *codex.Session:
+		cs := s
+		go func() {
+			ctx, cancel := context.WithTimeout(a.ctx, 2*time.Minute)
+			defer cancel()
+			if err := cs.ShellCommand(ctx, cmd, 0); err != nil && !errors.Is(err, context.Canceled) {
+				a.mu.Lock()
+				defer a.mu.Unlock()
+				a.toastLocked("error", "Shell: "+err.Error())
+				if gen == a.gen {
+					restore()
+				}
+			}
+		}()
+		return
+	}
+	if err != nil {
 		a.toastLocked("error", firstNonEmpty(errText(err), "Shell commands need Codex"))
 		restore()
 		return
 	}
-	go func() {
-		ctx, cancel := context.WithTimeout(a.ctx, 2*time.Minute)
-		defer cancel()
-		if err := cs.ShellCommand(ctx, cmd, 0); err != nil && !errors.Is(err, context.Canceled) {
-			a.mu.Lock()
-			defer a.mu.Unlock()
-			a.toastLocked("error", "Shell: "+err.Error())
-			if gen == a.gen {
-				restore()
-			}
-		}
-	}()
+	a.toastLocked("error", "Shell commands need "+a.backend.Name())
+	restore()
 }
 
 func errText(err error) string {
@@ -165,6 +190,10 @@ func errText(err error) string {
 
 // cmdDiff shows what the current or last turn changed.
 func (a *app) cmdDiff(string) {
+	if os, err := a.opencodeSession(); err == nil {
+		a.opencodeDiff(os)
+		return
+	}
 	if strings.TrimSpace(a.turnDiff) == "" {
 		a.toastLocked("info", "No changes in this turn yet")
 		return

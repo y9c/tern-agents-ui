@@ -20,6 +20,14 @@ builds:
     id: tcodex
     main: ./cmd/tcodex
     binary: bin/tcodex
+  - <<: *build
+    id: topencode
+    main: ./cmd/topencode
+    binary: bin/topencode
+  - <<: *build
+    id: tpi
+    main: ./cmd/tpi
+    binary: bin/tpi
 
 archives:
   - formats: [tar.gz]

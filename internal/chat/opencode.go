@@ -49,11 +49,17 @@ func (opencodeBackend) Efforts() []agent.Effort {
 		agent.EffortHigh, agent.EffortXHigh, agent.EffortMax}
 }
 
-// Has reports no optional features. The commands behind them (permission
-// rules, export, review, shell) are written against Claude's and Codex's
-// *Session types and would fail for OpenCode's; they are not offered until
-// a dedicated implementation exists.
-func (opencodeBackend) Has(feature) bool { return false }
+// Has reports the features wired for OpenCode. The commands behind them
+// (see opencode_extras.go) dispatch on the *opencode.Session type; the
+// rest stay written against Claude's and Codex's *Session types and are
+// not offered.
+func (opencodeBackend) Has(f feature) bool {
+	switch f {
+	case featAgents, featPermissionRules, featSideQuestion, featTurnDiff, featExport, featShell:
+		return true
+	}
+	return false
+}
 
 // SessionExists reads one turn of the stored session.
 func (b opencodeBackend) SessionExists(ctx context.Context, id, cwd string) error {
