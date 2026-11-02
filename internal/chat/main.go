@@ -52,6 +52,7 @@ func Main(b backend) {
 	mcpConfig := flag.String("mcp-config", "", `JSON file of extra MCP servers: {"mcpServers": {"name": {"command": …} | {"url": …}}}`)
 	noSave := flag.Bool("no-save", false, "don't store the conversation")
 	title := flag.String("title", "", "name the new conversation")
+	prompt := flag.String("p", "", "send this as the first message, like the agent CLI's --prompt")
 	applyAgentFlags := b.Flags(flag.CommandLine)
 	demo := flag.String("demo", "", "show a sample screen without starting "+b.Name()+": welcome, complete, context, chat, running, permission, question, ask, plan, rewind, config, picker or queue")
 
@@ -183,6 +184,15 @@ func Main(b backend) {
 		start.Resume = newestSession(ctx, a, dir)
 	}
 	a.start(start)
+	if *prompt != "" {
+		a.mu.Lock()
+		if a.deferred != nil {
+			a.sendLocked(*prompt, agent.DeliverQueue)
+		} else {
+			a.composer.set(*prompt)
+		}
+		a.mu.Unlock()
+	}
 
 	err = s.Run(a.ctx, func(in tern.Input) error {
 		switch in := in.(type) {
