@@ -1,9 +1,10 @@
 # tern-agents-ui
 
-Native [Tern](https://stencil.so/tern) chats for **Claude Code** and **Codex**.
+Native [Tern](https://stencil.so/tern) chats for **Claude Code**, **Codex** and **OpenCode**.
 
 - `tclaude` chats with Claude Code.
 - `tcodex` chats with Codex.
+- `topencode` chats with OpenCode.
 
 Each runs in a Tern pane and draws the conversation with Tern's own UI:
 Markdown messages, tool cards, diffs, subagents, permission prompts and a
@@ -18,7 +19,8 @@ to a plain text chat.
 
 - [Tern](https://stencil.so/tern)
 - The `claude` CLI ([Claude Code](https://docs.claude.com/en/docs/claude-code)),
-  the `codex` CLI ([Codex](https://github.com/openai/codex)), or both, signed in
+  the `codex` CLI ([Codex](https://github.com/openai/codex)), the `opencode`
+  CLI ([OpenCode](https://opencode.ai)), or any of them, signed in
 
 ## Install
 
@@ -53,19 +55,20 @@ With [Go](https://go.dev/dl/) 1.26 or newer:
 ```sh
 git clone https://github.com/saanuregh/tern-agents-ui
 cd tern-agents-ui
-./build.sh                       # builds bin/tclaude and bin/tcodex
+./build.sh                       # builds bin/tclaude, bin/tcodex and bin/topencode
 tern plugin link "$PWD/plugin"
 ```
 
 Or only the binaries:
-`go install github.com/saanuregh/tern-agents-ui/cmd/{tclaude,tcodex}@latest`.
+`go install github.com/saanuregh/tern-agents-ui/cmd/{tclaude,tcodex,topencode}@latest`.
 
 ## Start a chat
 
-- From the palette, choose **New Claude chat** or **New Codex chat**. It
-  opens beside the focused pane, in that pane's folder. **Continue last …**
-  reopens the most recent chat there.
-- From a shell, run `tclaude` or `tcodex` in the folder you want to work in.
+- From the palette, choose **New Claude chat**, **New Codex chat** or
+  **New OpenCode chat**. It opens beside the focused pane, in that pane's
+  folder. **Continue last …** reopens the most recent chat there.
+- From a shell, run `tclaude`, `tcodex` or `topencode` in the folder you
+  want to work in.
 
 The agent starts when you send your first message, so opening a chat costs
 nothing. Your existing setup applies as usual: settings, `CLAUDE.md` or

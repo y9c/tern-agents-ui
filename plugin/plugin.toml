@@ -1,7 +1,7 @@
 schema = 1
 id = "claude"
-name = "Claude and Codex"
+name = "Claude, Codex and OpenCode"
 version = "0.3.0"
-description = "Open a native Claude Code (tclaude) or Codex (tcodex) chat beside the focused pane."
+description = "Open a native Claude Code (tclaude), Codex (tcodex) or OpenCode (topencode) chat beside the focused pane."
 icon = "app-claude"
 window = "window.luau"

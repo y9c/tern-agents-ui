@@ -23,6 +23,7 @@ end
 local agents = {
 	{ id = "claude", name = "Claude", command = "tclaude" },
 	{ id = "codex", name = "Codex", command = "tcodex" },
+	{ id = "opencode", name = "OpenCode", command = "topencode" },
 }
 
 for _, agent in ipairs(agents) do
