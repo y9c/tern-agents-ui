@@ -11,6 +11,14 @@ Native [Tern](https://stencil.so/tern) chats for **Claude Code**, **Codex**, **O
   frontend (it installs the `hermes` CLI wrapper); it is not built as a Go
   backend here.
 
+For an exact drop-in that always uses the **latest** installed CLI, the build
+also emits thin passthrough shims named `opencode`, `codex`, `claude` and
+`pi` (`cmd/pass`). Each finds the real tool on your `PATH` (or via
+`OPENCODE_REAL`/`CODEX_REAL`/`CLAUDE_REAL`/`PI_REAL`) and execs it with every
+argument unchanged, so a wrapper named like the original behaves exactly like
+it and tracks upgrades automatically. Put `bin/` ahead of the tool's own
+directory on `PATH` to use them as a transparent proxy.
+
 Each runs in a Tern pane and draws the conversation with Tern's own UI:
 Markdown messages, tool cards, diffs, subagents, permission prompts and a
 composer with model, effort and context chips. Outside Tern they fall back

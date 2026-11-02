@@ -28,6 +28,24 @@ builds:
     id: tpi
     main: ./cmd/tpi
     binary: bin/tpi
+  # Thin passthrough shims named like the real CLIs: they exec the installed
+  # tool, so a wrapper always uses the latest version.
+  - <<: *build
+    id: opencode
+    main: ./cmd/pass
+    binary: bin/opencode
+  - <<: *build
+    id: codex
+    main: ./cmd/pass
+    binary: bin/codex
+  - <<: *build
+    id: claude
+    main: ./cmd/pass
+    binary: bin/claude
+  - <<: *build
+    id: pi
+    main: ./cmd/pass
+    binary: bin/pi
 
 archives:
   - formats: [tar.gz]
