@@ -127,9 +127,10 @@ func (claudeBackend) Product() string            { return "Claude Code" }
 func (claudeBackend) Command() string            { return "tclaude" }
 func (b claudeBackend) Provider() agent.Provider { return b.provider }
 
-// DefaultModel keeps a new chat cheap: Haiku with its standard context
-// window. -model or /model picks another.
-func (claudeBackend) DefaultModel() string { return "claude-haiku-5-5" }
+// DefaultModel leaves the model to Claude Code's own settings, so a
+// gateway whose catalog differs from Anthropic's (a configured model) is not
+// overridden. -model or /model picks one.
+func (claudeBackend) DefaultModel() string { return "" }
 
 // Defaults reads defaultMode and effortLevel from Claude Code's user,
 // project and local settings, later files winning. Managed settings and
